@@ -7,24 +7,73 @@
   const priceFormatter = new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 2 });
   year.textContent = new Date().getFullYear();
 
+  function loadFontStylesheet() {
+    const fontStylesheet = document.getElementById("font-stylesheet");
+    if (fontStylesheet) {
+      window.setTimeout(() => {
+        fontStylesheet.media = "all";
+      }, 150);
+    }
+  }
+
+  loadFontStylesheet();
+
   const config = window.APP_CONFIG;
   if (!config || !config.supabaseUrl || !config.supabaseAnonKey ||
       config.supabaseUrl.startsWith("YOUR_") || config.supabaseAnonKey.startsWith("YOUR_")) {
+    setCatalogLoading(false);
+    catalog.replaceChildren();
     status.dataset.kind = "error";
     status.textContent = "أكمل إعداد رابط ومفتاح Supabase في ملف config.js لعرض الأسعار.";
     return;
   }
-  if (!window.supabase) {
-    status.dataset.kind = "error";
-    status.textContent = "تعذر تحميل مكتبة الاتصال. تحقق من اتصال الإنترنت ثم أعد المحاولة.";
-    return;
-  }
-
-  const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
   let categories = [];
   let services = [];
   let searchIndex = [];
   let renderFrame = 0;
+
+  function setCatalogLoading(isLoading) {
+    catalog.classList.toggle("is-loading", isLoading);
+    catalog.setAttribute("aria-busy", String(isLoading));
+  }
+
+  function renderLoadingSkeleton() {
+    const fragment = document.createDocumentFragment();
+    const rowCount = window.matchMedia("(max-width: 700px)").matches ? 6 : 4;
+
+    for (let cardIndex = 0; cardIndex < 15; cardIndex += 1) {
+      const card = document.createElement("section");
+      card.className = "category-card skeleton-card";
+      card.setAttribute("aria-hidden", "true");
+
+      const heading = document.createElement("div");
+      heading.className = "category-heading";
+      const icon = document.createElement("span");
+      icon.className = "category-icon skeleton-block";
+      const title = document.createElement("span");
+      title.className = "skeleton-block skeleton-title";
+      const categoryCount = document.createElement("span");
+      categoryCount.className = "skeleton-block skeleton-count";
+      heading.append(icon, title, categoryCount);
+
+      const list = document.createElement("div");
+      list.className = "service-list";
+      for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+        const row = document.createElement("div");
+        row.className = "service-row skeleton-row";
+        const name = document.createElement("span");
+        name.className = "skeleton-block skeleton-name";
+        const prices = document.createElement("span");
+        prices.className = "skeleton-block skeleton-prices";
+        row.append(name, prices);
+        list.append(row);
+      }
+      card.append(heading, list);
+      fragment.append(card);
+    }
+
+    catalog.replaceChildren(fragment);
+  }
 
   function formatPrice(value) {
     return priceFormatter.format(Number(value));
@@ -67,6 +116,7 @@
       empty.className = "empty-state";
       empty.textContent = query ? "لا توجد خدمات تطابق بحثك." : "لا توجد خدمات مضافة حاليًا.";
       content.append(empty);
+      setCatalogLoading(false);
       catalog.replaceChildren(content);
       return;
     }
@@ -116,6 +166,7 @@
       card.append(heading, list);
       content.append(card);
     });
+    setCatalogLoading(false);
     catalog.replaceChildren(content);
   }
 
@@ -130,14 +181,31 @@
   async function loadCatalog() {
     status.dataset.kind = "";
     status.textContent = "جاري تحميل قائمة الخدمات...";
-    const [categoryResult, serviceResult] = await Promise.all([
-      client.from("categories").select("id, name, sort_order").order("sort_order").order("name"),
-      client.from("services").select("id, category_id, name, partner_price, regular_price, price_note").order("name")
+    const apiUrl = config.supabaseUrl.replace(/\/+$/, "");
+    const headers = {
+      apikey: config.supabaseAnonKey,
+      Authorization: `Bearer ${config.supabaseAnonKey}`,
+      Accept: "application/json"
+    };
+    const fetchRows = async (table, params) => {
+      const url = new URL(`${apiUrl}/rest/v1/${table}`);
+      url.search = new URLSearchParams(params).toString();
+      const response = await fetch(url, { headers });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.message || response.statusText || `HTTP ${response.status}`);
+      }
+      return data;
+    };
+    const [categoryRows, serviceRows] = await Promise.all([
+      fetchRows("categories", { select: "id,name,sort_order", order: "sort_order.asc,name.asc" }),
+      fetchRows("services", {
+        select: "id,category_id,name,partner_price,regular_price,price_note",
+        order: "name.asc"
+      })
     ]);
-    if (categoryResult.error) throw categoryResult.error;
-    if (serviceResult.error) throw serviceResult.error;
-    categories = categoryResult.data;
-    services = serviceResult.data;
+    categories = categoryRows;
+    services = serviceRows;
     const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
     searchIndex = services.map((service) => ({
       service,
@@ -150,7 +218,10 @@
   }
 
   searchInput.addEventListener("input", scheduleRender);
+  renderLoadingSkeleton();
   loadCatalog().catch((error) => {
+    setCatalogLoading(false);
+    catalog.replaceChildren();
     status.dataset.kind = "error";
     status.textContent = `تعذر تحميل الأسعار: ${error.message}`;
     count.textContent = "";

@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102a43">
   <meta name="description" content="قائمة أسعار الخدمات للشركاء والعملاء">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; connect-src 'self' https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
   <title>مكتب المهندس | الأسعار</title>
+  <link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261024-all-prices-green">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous"></script>
-  <script src="config.js?v=20261024"></script>
-  <script src="app.js?v=20261024-pricing" defer></script>
+  <link id="font-stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet" media="print">
+  <link rel="stylesheet" href="styles.css?v=20261024-performance">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"></noscript>
+  <script src="config.js?v=20261024" defer></script>
+  <script src="app.js?v=20261024-performance" defer></script>
 </head>
 <body>
   <header class="site-header">
@@ -50,7 +51,7 @@
       <p class="catalog-count" id="catalog-count" aria-live="polite"></p>
     </section>
     <div id="catalog-status" class="notice" role="status">جاري تحميل قائمة الخدمات...</div>
-    <div id="catalog" class="catalog-grid"></div>
+    <div id="catalog" class="catalog-grid is-loading" aria-busy="true"></div>
   </main>
 
   <footer class="site-footer">
