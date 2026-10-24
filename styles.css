@@ -182,9 +182,17 @@ a { color: inherit; text-decoration: none; }
 .search-box kbd { color: #8b9aa4; font: inherit; font-size: .74rem; }
 .catalog-count { margin: 0; color: var(--muted); font-size: .86rem; white-space: nowrap; }
 
-.catalog-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.catalog-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+  align-items: stretch;
+}
 .category-card {
   overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
   border: 1px solid var(--line);
   border-radius: 16px;
   background: var(--white);
@@ -212,7 +220,7 @@ a { color: inherit; text-decoration: none; }
 
 .category-heading h2 { margin: 0; font-size: 1rem; font-weight: 800; }
 .category-heading span:last-child { margin-right: auto; color: #93a1aa; font-size: .77rem; }
-.service-list { padding: 0 21px 8px; }
+.service-list { flex: 1; padding: 0 21px 8px; }
 .service-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 59px; border-top: 1px solid #edf0f2; }
 .service-name { font-size: .89rem; font-weight: 600; }
 .prices { display: flex; align-items: center; gap: 8px; white-space: nowrap; }
