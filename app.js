@@ -4,6 +4,7 @@
   const status = document.getElementById("catalog-status");
   const count = document.getElementById("catalog-count");
   const year = document.getElementById("current-year");
+  const priceFormatter = new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 2 });
   year.textContent = new Date().getFullYear();
 
   const config = window.APP_CONFIG;
@@ -22,31 +23,57 @@
   const client = window.supabase.createClient(config.supabaseUrl, config.supabaseAnonKey);
   let categories = [];
   let services = [];
+  let searchIndex = [];
+  let renderFrame = 0;
 
   function formatPrice(value) {
-    return new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 2 }).format(Number(value));
+    return priceFormatter.format(Number(value));
+  }
+
+  function normalizeSearchText(value) {
+    return value.normalize("NFKC")
+      .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+      .replace(/[أإآٱ]/g, "ا")
+      .replace(/ى/g, "ي")
+      .replace(/ة/g, "ه")
+      .replace(/ؤ/g, "و")
+      .replace(/ئ/g, "ي")
+      .toLocaleLowerCase("ar")
+      .trim()
+      .replace(/\s+/g, " ");
   }
 
   function render() {
-    const query = searchInput.value.trim().toLocaleLowerCase("ar");
-    const filtered = services.filter((service) => {
-      const category = categories.find((item) => item.id === service.category_id);
-      return `${service.name} ${category ? category.name : ""}`.toLocaleLowerCase("ar").includes(query);
-    });
-    count.textContent = `عدد الخدمات: ${formatPrice(filtered.length)}`;
-    catalog.replaceChildren();
+    const query = normalizeSearchText(searchInput.value);
+    const groups = new Map();
+    let resultCount = 0;
 
-    if (filtered.length === 0) {
+    for (const item of searchIndex) {
+      if (!item.searchText.includes(query)) continue;
+      let group = groups.get(item.service.category_id);
+      if (!group) {
+        group = [];
+        groups.set(item.service.category_id, group);
+      }
+      group.push(item.service);
+      resultCount += 1;
+    }
+
+    count.textContent = `عدد الخدمات: ${formatPrice(resultCount)}`;
+    const content = document.createDocumentFragment();
+
+    if (resultCount === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
       empty.textContent = query ? "لا توجد خدمات تطابق بحثك." : "لا توجد خدمات مضافة حاليًا.";
-      catalog.append(empty);
+      content.append(empty);
+      catalog.replaceChildren(content);
       return;
     }
 
     categories.forEach((category, index) => {
-      const items = filtered.filter((service) => service.category_id === category.id);
-      if (!items.length) return;
+      const items = groups.get(category.id);
+      if (!items || items.length === 0) return;
 
       const card = document.createElement("section");
       card.className = "category-card";
@@ -83,7 +110,16 @@
         list.append(row);
       });
       card.append(heading, list);
-      catalog.append(card);
+      content.append(card);
+    });
+    catalog.replaceChildren(content);
+  }
+
+  function scheduleRender() {
+    if (renderFrame) return;
+    renderFrame = window.requestAnimationFrame(() => {
+      renderFrame = 0;
+      render();
     });
   }
 
@@ -98,11 +134,18 @@
     if (serviceResult.error) throw serviceResult.error;
     categories = categoryResult.data;
     services = serviceResult.data;
+    const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+    searchIndex = services.map((service) => ({
+      service,
+      searchText: normalizeSearchText(
+        `${service.name} ${categoryNames.get(service.category_id) || ""}`
+      )
+    }));
     status.textContent = "";
     render();
   }
 
-  searchInput.addEventListener("input", render);
+  searchInput.addEventListener("input", scheduleRender);
   loadCatalog().catch((error) => {
     status.dataset.kind = "error";
     status.textContent = `تعذر تحميل الأسعار: ${error.message}`;

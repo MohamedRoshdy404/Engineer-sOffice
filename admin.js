@@ -24,9 +24,11 @@
   const cancelEdit = document.getElementById("cancel-edit-button");
   const saveServiceButton = document.getElementById("save-service-button");
   const config = window.APP_CONFIG;
+  const priceFormatter = new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 2 });
   let client;
   let categories = [];
   let services = [];
+  let categoriesById = new Map();
 
   function setMessage(element, text, kind = "") {
     element.dataset.kind = kind;
@@ -34,14 +36,20 @@
   }
 
   function formatPrice(value) {
-    return new Intl.NumberFormat("ar-SA", { maximumFractionDigits: 2 }).format(Number(value));
+    return priceFormatter.format(Number(value));
   }
 
   function setBusy(button, busy) {
     button.disabled = busy;
-    if (busy) button.dataset.originalText = button.textContent;
-    button.textContent = busy ? "جارٍ الحفظ..." : (button.dataset.originalText || button.textContent);
-    if (!busy) delete button.dataset.originalText;
+    if (busy) {
+      button.dataset.originalText = button.textContent;
+      button.textContent = "جارٍ الحفظ...";
+    } else {
+      if (button.textContent === "جارٍ الحفظ..." && button.dataset.originalText) {
+        button.textContent = button.dataset.originalText;
+      }
+      delete button.dataset.originalText;
+    }
   }
 
   function showDashboard(visible) {
@@ -75,6 +83,11 @@
       return;
     }
 
+    const serviceCounts = new Map();
+    services.forEach((service) => {
+      serviceCounts.set(service.category_id, (serviceCounts.get(service.category_id) || 0) + 1);
+    });
+
     categories.forEach((category) => {
       const row = document.createElement("div");
       row.className = "admin-row";
@@ -83,7 +96,7 @@
       const title = document.createElement("span");
       title.className = "admin-row-title";
       title.textContent = category.name;
-      const itemCount = services.filter((service) => service.category_id === category.id).length;
+      const itemCount = serviceCounts.get(category.id) || 0;
       const meta = document.createElement("span");
       meta.className = "admin-row-meta";
       meta.textContent = `${formatPrice(itemCount)} خدمات`;
@@ -100,7 +113,7 @@
       remove.className = "button button-danger";
       remove.type = "button";
       remove.textContent = "حذف";
-      remove.addEventListener("click", () => deleteCategory(category));
+      remove.addEventListener("click", () => deleteCategory(category, remove));
       actions.append(edit, remove);
       row.append(main, actions);
       categoryList.append(row);
@@ -126,7 +139,7 @@
       const title = document.createElement("span");
       title.className = "admin-row-title";
       title.textContent = service.name;
-      const category = categories.find((item) => item.id === service.category_id);
+      const category = categoriesById.get(service.category_id);
       const meta = document.createElement("span");
       meta.className = "admin-row-meta";
       meta.textContent = `${category ? category.name : "بدون قسم"} · شريك ${formatPrice(service.partner_price)} ر.س · أساسي ${formatPrice(service.regular_price)} ر.س`;
@@ -143,7 +156,7 @@
       remove.className = "button button-danger";
       remove.type = "button";
       remove.textContent = "حذف";
-      remove.addEventListener("click", () => deleteService(service));
+      remove.addEventListener("click", () => deleteService(service, remove));
       actions.append(edit, remove);
       row.append(main, actions);
       serviceList.append(row);
@@ -155,7 +168,9 @@
     const adminResult = await client.from("admin_users").select("user_id").maybeSingle();
     if (adminResult.error) throw adminResult.error;
     if (!adminResult.data) {
-      throw new Error("هذا الحساب غير مضاف كأدمن. اطلب من مالك المشروع إضافته إلى قائمة الأدمن في Supabase.");
+      showDashboard(false);
+      setMessage(loginMessage, "هذا الحساب غير مضاف كأدمن. اطلب من مالك المشروع إضافته إلى قائمة الأدمن في Supabase.", "error");
+      return false;
     }
     const [categoryResult, serviceResult] = await Promise.all([
       client.from("categories").select("id, name, sort_order").order("sort_order").order("name"),
@@ -165,9 +180,11 @@
     if (serviceResult.error) throw serviceResult.error;
     categories = categoryResult.data;
     services = serviceResult.data;
+    categoriesById = new Map(categories.map((category) => [category.id, category]));
     renderCategories();
     renderServices();
     setMessage(adminMessage, "");
+    return true;
   }
 
   function startCategoryEdit(category) {
@@ -188,30 +205,35 @@
     cancelCategoryEdit.hidden = true;
   }
 
-  async function deleteCategory(category) {
+  async function deleteCategory(category, button) {
     const itemCount = services.filter((service) => service.category_id === category.id).length;
     const servicesWarning = itemCount
       ? ` وسيتم حذف ${formatPrice(itemCount)} خدمات مرتبطة به أيضًا.`
       : "";
     if (!window.confirm(`هل تريد حذف قسم "${category.name}"؟${servicesWarning}`)) return;
 
-    setBusy(saveCategoryButton, true);
+    setBusy(button, true);
     setMessage(adminMessage, "جاري حذف القسم...");
-    const { error } = await client.from("categories").delete().eq("id", category.id);
-    setBusy(saveCategoryButton, false);
-    if (error) {
-      setMessage(adminMessage, `تعذر حذف القسم: ${error.message}`, "error");
-      return;
-    }
-
-    if (categoryId.value === category.id) resetCategoryForm();
-    if (services.some((service) => service.category_id === category.id &&
-        serviceId.value === service.id)) resetServiceForm();
     try {
-      await refreshData();
-      setMessage(adminMessage, "تم حذف القسم والخدمات المرتبطة به.", "success");
+      const { error } = await client.from("categories").delete().eq("id", category.id);
+      if (error) {
+        setMessage(adminMessage, `تعذر حذف القسم: ${error.message}`, "error");
+        return;
+      }
+
+      if (categoryId.value === category.id) resetCategoryForm();
+      if (services.some((service) => service.category_id === category.id &&
+          serviceId.value === service.id)) resetServiceForm();
+      try {
+        if (!(await refreshData())) return;
+        setMessage(adminMessage, "تم حذف القسم والخدمات المرتبطة به.", "success");
+      } catch (error) {
+        setMessage(adminMessage, `تم حذف القسم، لكن تعذر تحديث القائمة: ${error.message}`, "error");
+      }
     } catch (error) {
-      setMessage(adminMessage, `تم حذف القسم، لكن تعذر تحديث القائمة: ${error.message}`, "error");
+      setMessage(adminMessage, `تعذر حذف القسم: ${error.message}`, "error");
+    } finally {
+      setBusy(button, false);
     }
   }
 
@@ -236,20 +258,26 @@
     cancelEdit.hidden = true;
   }
 
-  async function deleteService(service) {
+  async function deleteService(service, button) {
     if (!window.confirm(`هل تريد حذف خدمة "${service.name}"؟`)) return;
     setMessage(adminMessage, "جاري حذف الخدمة...");
-    const { error } = await client.from("services").delete().eq("id", service.id);
-    if (error) {
-      setMessage(adminMessage, `تعذر حذف الخدمة: ${error.message}`, "error");
-      return;
-    }
-    setMessage(adminMessage, "تم حذف الخدمة.", "success");
+    setBusy(button, true);
     try {
-      await refreshData();
-      setMessage(adminMessage, "تم حذف الخدمة.", "success");
+      const { error } = await client.from("services").delete().eq("id", service.id);
+      if (error) {
+        setMessage(adminMessage, `تعذر حذف الخدمة: ${error.message}`, "error");
+        return;
+      }
+      try {
+        if (!(await refreshData())) return;
+        setMessage(adminMessage, "تم حذف الخدمة.", "success");
+      } catch (error) {
+        setMessage(adminMessage, `تم حذف الخدمة، لكن تعذر تحديث القائمة: ${error.message}`, "error");
+      }
     } catch (error) {
-      setMessage(adminMessage, `تم حذف الخدمة، لكن تعذر تحديث القائمة: ${error.message}`, "error");
+      setMessage(adminMessage, `تعذر حذف الخدمة: ${error.message}`, "error");
+    } finally {
+      setBusy(button, false);
     }
   }
 
@@ -258,11 +286,14 @@
       showDashboard(false);
       return;
     }
-    showDashboard(true);
+    showDashboard(false);
+    setMessage(loginMessage, "جارٍ التحقق من صلاحيات الحساب...");
     try {
-      await refreshData();
+      if (!(await refreshData())) return;
+      setMessage(loginMessage, "");
+      showDashboard(true);
     } catch (error) {
-      setMessage(adminMessage, `تعذر تحميل لوحة الإدارة: ${error.message}`, "error");
+      setMessage(loginMessage, `تعذر التحقق من صلاحيات الإدارة: ${error.message}`, "error");
     }
   }
 
@@ -284,50 +315,65 @@
     const button = loginForm.querySelector("button");
     setBusy(button, true);
     setMessage(loginMessage, "");
-    const { data, error } = await client.auth.signInWithPassword({
-      email: document.getElementById("login-email").value.trim(),
-      password: document.getElementById("login-password").value
-    });
-    setBusy(button, false);
-    if (error) {
+    try {
+      const { data, error } = await client.auth.signInWithPassword({
+        email: document.getElementById("login-email").value.trim(),
+        password: document.getElementById("login-password").value
+      });
+      if (error) {
+        setMessage(loginMessage, `تعذر تسجيل الدخول: ${error.message}`, "error");
+        return;
+      }
+      await showAuthenticatedSession(data.session);
+    } catch (error) {
       setMessage(loginMessage, `تعذر تسجيل الدخول: ${error.message}`, "error");
-      return;
+    } finally {
+      setBusy(button, false);
     }
-    await showAuthenticatedSession(data.session);
   });
 
   document.getElementById("logout-button").addEventListener("click", async () => {
-    const { error } = await client.auth.signOut();
-    if (error) {
+    try {
+      const { error } = await client.auth.signOut();
+      if (error) {
+        setMessage(adminMessage, `تعذر تسجيل الخروج: ${error.message}`, "error");
+        return;
+      }
+      resetServiceForm();
+      resetCategoryForm();
+      showDashboard(false);
+      setMessage(loginMessage, "تم تسجيل الخروج.", "success");
+    } catch (error) {
       setMessage(adminMessage, `تعذر تسجيل الخروج: ${error.message}`, "error");
-      return;
     }
-    resetServiceForm();
-    showDashboard(false);
-    setMessage(loginMessage, "تم تسجيل الخروج.", "success");
   });
 
   categoryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     setBusy(saveCategoryButton, true);
     setMessage(adminMessage, "");
-    const request = categoryId.value
-      ? client.from("categories").update({ name: categoryName.value.trim() }).eq("id", categoryId.value)
-      : client.from("categories").insert({ name: categoryName.value.trim() });
-    const { error } = await request;
-    setBusy(saveCategoryButton, false);
-    if (error) {
-      setMessage(adminMessage, `تعذر حفظ القسم: ${error.message}`, "error");
-      return;
-    }
-    const wasEditing = Boolean(categoryId.value);
-    resetCategoryForm();
     try {
-      await refreshData();
-      setMessage(adminMessage, wasEditing ? "تم تعديل القسم." : "تمت إضافة القسم.", "success");
-    } catch (refreshError) {
-      const action = wasEditing ? "تعديل القسم" : "إضافة القسم";
-      setMessage(adminMessage, `تم ${action}، لكن تعذر تحديث القائمة: ${refreshError.message}`, "error");
+      const wasEditing = Boolean(categoryId.value);
+      const request = wasEditing
+        ? client.from("categories").update({ name: categoryName.value.trim() }).eq("id", categoryId.value)
+        : client.from("categories").insert({ name: categoryName.value.trim() });
+      const { error } = await request;
+      if (error) {
+        setMessage(adminMessage, `تعذر حفظ القسم: ${error.message}`, "error");
+        return;
+      }
+      resetCategoryForm();
+      try {
+        if (!(await refreshData())) return;
+        setMessage(adminMessage, wasEditing ? "تم تعديل القسم." : "تمت إضافة القسم.", "success");
+      } catch (refreshError) {
+        const action = wasEditing ? "تعديل القسم" : "إضافة القسم";
+        setMessage(adminMessage, `تم ${action}، لكن تعذر تحديث القائمة: ${refreshError.message}`, "error");
+      }
+    } catch (error) {
+      setMessage(adminMessage, `تعذر حفظ القسم: ${error.message}`, "error");
+    } finally {
+      setBusy(saveCategoryButton, false);
     }
   });
 
@@ -339,27 +385,32 @@
     }
     setBusy(saveServiceButton, true);
     setMessage(adminMessage, "");
-    const values = {
-      category_id: serviceCategory.value,
-      name: serviceName.value.trim(),
-      partner_price: Number(partnerPrice.value),
-      regular_price: Number(regularPrice.value)
-    };
-    const request = serviceId.value
-      ? client.from("services").update(values).eq("id", serviceId.value)
-      : client.from("services").insert(values);
-    const { error } = await request;
-    setBusy(saveServiceButton, false);
-    if (error) {
-      setMessage(adminMessage, `تعذر حفظ الخدمة: ${error.message}`, "error");
-      return;
-    }
-    resetServiceForm();
     try {
-      await refreshData();
-      setMessage(adminMessage, "تم حفظ الخدمة.", "success");
-    } catch (refreshError) {
-      setMessage(adminMessage, `تم حفظ الخدمة، لكن تعذر تحديث القائمة: ${refreshError.message}`, "error");
+      const values = {
+        category_id: serviceCategory.value,
+        name: serviceName.value.trim(),
+        partner_price: Number(partnerPrice.value),
+        regular_price: Number(regularPrice.value)
+      };
+      const request = serviceId.value
+        ? client.from("services").update(values).eq("id", serviceId.value)
+        : client.from("services").insert(values);
+      const { error } = await request;
+      if (error) {
+        setMessage(adminMessage, `تعذر حفظ الخدمة: ${error.message}`, "error");
+        return;
+      }
+      resetServiceForm();
+      try {
+        if (!(await refreshData())) return;
+        setMessage(adminMessage, "تم حفظ الخدمة.", "success");
+      } catch (refreshError) {
+        setMessage(adminMessage, `تم حفظ الخدمة، لكن تعذر تحديث القائمة: ${refreshError.message}`, "error");
+      }
+    } catch (error) {
+      setMessage(adminMessage, `تعذر حفظ الخدمة: ${error.message}`, "error");
+    } finally {
+      setBusy(saveServiceButton, false);
     }
   });
 
@@ -371,6 +422,8 @@
       return;
     }
     showAuthenticatedSession(data.session);
+  }).catch((error) => {
+    setMessage(loginMessage, `تعذر استعادة جلسة الدخول: ${error.message}`, "error");
   });
   client.auth.onAuthStateChange((_event, session) => {
     if (!session) showDashboard(false);

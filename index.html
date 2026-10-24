@@ -5,12 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#102a43">
   <meta name="description" content="قائمة أسعار الخدمات للشركاء والعملاء">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; connect-src 'self' https://*.supabase.co; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-src 'none'; upgrade-insecure-requests">
   <title>مكتب المهندس | الأسعار</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0" integrity="sha384-UagCvVPT5XXA0Hx+nJYUAGBFseHT9zBgpJMSebsAxl9lciTwbT+39j5VfRjdP5Tp" crossorigin="anonymous"></script>
   <script src="config.js"></script>
   <script src="app.js" defer></script>
 </head>
@@ -21,7 +22,6 @@
         <span class="brand-mark" aria-hidden="true">✦</span>
         <span>مكتب المهندس</span>
       </a>
-      <a class="admin-link" href="admin.html">إدارة الأسعار <span aria-hidden="true">↗</span></a>
     </nav>
     <div class="hero">
       <div class="hero-copy">
@@ -41,7 +41,7 @@
     <section class="catalog-toolbar" aria-label="البحث والتصفية">
       <label class="search-box">
         <span aria-hidden="true">⌕</span>
-        <input id="service-search" type="search" placeholder="ابحث عن خدمة..." autocomplete="off">
+        <input id="service-search" type="search" aria-label="ابحث عن خدمة أو قسم" placeholder="ابحث عن خدمة..." autocomplete="off">
         <kbd>بحث</kbd>
       </label>
       <p class="catalog-count" id="catalog-count" aria-live="polite"></p>
