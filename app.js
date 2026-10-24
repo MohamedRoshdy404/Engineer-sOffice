@@ -98,14 +98,18 @@
         name.className = "service-name";
         name.textContent = service.name;
         const prices = document.createElement("span");
-        prices.className = "prices";
-        const partner = document.createElement("strong");
-        partner.className = "partner-price";
-        partner.textContent = `${formatPrice(service.partner_price)} ر.س`;
-        const regular = document.createElement("span");
-        regular.className = "regular-price";
-        regular.textContent = `${formatPrice(service.regular_price)} ر.س`;
-        prices.append(partner, regular);
+        prices.className = service.price_note ? "prices quote-price" : "prices";
+        if (service.price_note) {
+          prices.textContent = service.price_note;
+        } else {
+          const partner = document.createElement("strong");
+          partner.className = "partner-price";
+          partner.textContent = `${formatPrice(service.partner_price)} ر.س`;
+          const regular = document.createElement("span");
+          regular.className = "regular-price";
+          regular.textContent = `${formatPrice(service.regular_price)} ر.س`;
+          prices.append(partner, regular);
+        }
         row.append(name, prices);
         list.append(row);
       });
@@ -128,7 +132,7 @@
     status.textContent = "جاري تحميل قائمة الخدمات...";
     const [categoryResult, serviceResult] = await Promise.all([
       client.from("categories").select("id, name, sort_order").order("sort_order").order("name"),
-      client.from("services").select("id, category_id, name, partner_price, regular_price").order("name")
+      client.from("services").select("id, category_id, name, partner_price, regular_price, price_note").order("name")
     ]);
     if (categoryResult.error) throw categoryResult.error;
     if (serviceResult.error) throw serviceResult.error;

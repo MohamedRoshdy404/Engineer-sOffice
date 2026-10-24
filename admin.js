@@ -18,6 +18,7 @@
   const serviceName = document.getElementById("service-name");
   const partnerPrice = document.getElementById("partner-price");
   const regularPrice = document.getElementById("regular-price");
+  const priceOnAgreement = document.getElementById("price-on-agreement");
   const serviceFormTitle = document.getElementById("service-form-title");
   const serviceList = document.getElementById("admin-services");
   const serviceCount = document.getElementById("admin-service-count");
@@ -142,7 +143,10 @@
       const category = categoriesById.get(service.category_id);
       const meta = document.createElement("span");
       meta.className = "admin-row-meta";
-      meta.textContent = `${category ? category.name : "بدون قسم"} · شريك ${formatPrice(service.partner_price)} ر.س · أساسي ${formatPrice(service.regular_price)} ر.س`;
+      const priceSummary = service.price_note
+        ? service.price_note
+        : `شريك ${formatPrice(service.partner_price)} ر.س · أساسي ${formatPrice(service.regular_price)} ر.س`;
+      meta.textContent = `${category ? category.name : "بدون قسم"} · ${priceSummary}`;
       main.append(title, meta);
 
       const actions = document.createElement("div");
@@ -174,7 +178,7 @@
     }
     const [categoryResult, serviceResult] = await Promise.all([
       client.from("categories").select("id, name, sort_order").order("sort_order").order("name"),
-      client.from("services").select("id, category_id, name, partner_price, regular_price").order("name")
+      client.from("services").select("id, category_id, name, partner_price, regular_price, price_note").order("name")
     ]);
     if (categoryResult.error) throw categoryResult.error;
     if (serviceResult.error) throw serviceResult.error;
@@ -243,6 +247,8 @@
     serviceName.value = service.name;
     partnerPrice.value = service.partner_price;
     regularPrice.value = service.regular_price;
+    priceOnAgreement.checked = Boolean(service.price_note);
+    updatePriceFields();
     serviceFormTitle.textContent = "تعديل الخدمة";
     saveServiceButton.textContent = "حفظ التعديلات";
     cancelEdit.hidden = false;
@@ -256,6 +262,16 @@
     serviceFormTitle.textContent = "إضافة خدمة";
     saveServiceButton.textContent = "حفظ الخدمة";
     cancelEdit.hidden = true;
+    priceOnAgreement.checked = false;
+    updatePriceFields();
+  }
+
+  function updatePriceFields() {
+    const quoteOnly = priceOnAgreement.checked;
+    partnerPrice.disabled = quoteOnly;
+    regularPrice.disabled = quoteOnly;
+    partnerPrice.required = !quoteOnly;
+    regularPrice.required = !quoteOnly;
   }
 
   async function deleteService(service, button) {
@@ -389,8 +405,9 @@
       const values = {
         category_id: serviceCategory.value,
         name: serviceName.value.trim(),
-        partner_price: Number(partnerPrice.value),
-        regular_price: Number(regularPrice.value)
+        partner_price: priceOnAgreement.checked ? null : Number(partnerPrice.value),
+        regular_price: priceOnAgreement.checked ? null : Number(regularPrice.value),
+        price_note: priceOnAgreement.checked ? "حسب الاتفاق" : null
       };
       const request = serviceId.value
         ? client.from("services").update(values).eq("id", serviceId.value)
@@ -416,6 +433,7 @@
 
   cancelCategoryEdit.addEventListener("click", resetCategoryForm);
   cancelEdit.addEventListener("click", resetServiceForm);
+  priceOnAgreement.addEventListener("change", updatePriceFields);
   client.auth.getSession().then(({ data, error }) => {
     if (error) {
       setMessage(loginMessage, `تعذر استعادة جلسة الدخول: ${error.message}`, "error");

@@ -294,6 +294,10 @@ a { color: inherit; text-decoration: none; }
 .inline-form { display: flex; align-items: end; gap: 12px; }
 .inline-form label { flex: 1; }
 .service-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.service-form .checkbox-field { display: flex; align-items: center; gap: 9px; align-self: end; min-height: 44px; cursor: pointer; }
+.service-form .checkbox-field input { width: 18px; min-height: 18px; margin: 0; accent-color: var(--teal); }
+.service-form .checkbox-field span { color: #415665; }
+.quote-price { color: #087b69; font-size: .84rem; font-weight: 800; }
 .form-actions { display: flex; align-items: end; gap: 8px; }
 .list-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .list-heading h2 { margin-bottom: 0; }

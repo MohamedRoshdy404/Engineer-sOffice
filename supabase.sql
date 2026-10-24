@@ -9,8 +9,14 @@ create table if not exists public.services (
   id uuid primary key default gen_random_uuid(),
   category_id uuid not null references public.categories(id) on delete cascade,
   name text not null check (char_length(trim(name)) between 1 and 150),
-  partner_price numeric(12, 2) not null check (partner_price >= 0),
-  regular_price numeric(12, 2) not null check (regular_price >= 0),
+  partner_price numeric(12, 2) check (partner_price >= 0),
+  regular_price numeric(12, 2) check (regular_price >= 0),
+  price_note text,
+  constraint services_pricing_mode_check check (
+    (partner_price is not null and regular_price is not null and price_note is null)
+    or
+    (partner_price is null and regular_price is null and price_note = 'حسب الاتفاق')
+  ),
   created_at timestamptz not null default now()
 );
 
