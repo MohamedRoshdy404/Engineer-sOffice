@@ -111,11 +111,28 @@ a { color: inherit; text-decoration: none; }
   margin: 13px 0 8px;
   font-size: clamp(2rem, 4vw, 3.2rem);
   font-weight: 800;
-  line-height: 1.35;
+  line-height: 1.45;
 }
 
 .hero h1 span { color: var(--gold); }
 .hero p { margin: 0; color: #c4d1db; font-size: .98rem; }
+
+.discount-highlight {
+  width: fit-content;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 20px;
+  padding: 10px 16px;
+  border: 1px solid rgb(242 198 109 / 48%);
+  border-radius: 14px;
+  color: #fff4d8;
+  background: linear-gradient(120deg, rgb(242 198 109 / 16%), rgb(255 255 255 / 5%));
+  box-shadow: 0 8px 24px rgb(4 17 29 / 14%), inset 0 1px rgb(255 255 255 / 8%);
+}
+
+.discount-highlight strong { color: var(--gold); font-size: 1.15rem; font-weight: 800; }
+.discount-highlight span { color: #e1e9ed; font-size: .88rem; }
 
 .hero-art {
   width: 330px;
@@ -323,7 +340,7 @@ a { color: inherit; text-decoration: none; }
 @media (max-width: 700px) {
   .topbar, .hero, .catalog-wrap, .site-footer, .admin-header, .admin-wrap { width: min(100% - 30px, 560px); }
   .hero { min-height: 280px; padding-block: 36px; }
-  .hero-art { position: absolute; left: -105px; margin: 0; opacity: .42; transform: scale(.8); transform-origin: left center; }
+  .hero-art { display: none; }
   .hero-copy { max-width: 90%; }
   .catalog-grid { grid-template-columns: 1fr; }
   .catalog-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
