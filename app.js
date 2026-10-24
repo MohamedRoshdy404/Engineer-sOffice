@@ -37,44 +37,6 @@
     catalog.setAttribute("aria-busy", String(isLoading));
   }
 
-  function renderLoadingSkeleton() {
-    const fragment = document.createDocumentFragment();
-    const rowCount = window.matchMedia("(max-width: 700px)").matches ? 6 : 4;
-
-    for (let cardIndex = 0; cardIndex < 15; cardIndex += 1) {
-      const card = document.createElement("section");
-      card.className = "category-card skeleton-card";
-      card.setAttribute("aria-hidden", "true");
-
-      const heading = document.createElement("div");
-      heading.className = "category-heading";
-      const icon = document.createElement("span");
-      icon.className = "category-icon skeleton-block";
-      const title = document.createElement("span");
-      title.className = "skeleton-block skeleton-title";
-      const categoryCount = document.createElement("span");
-      categoryCount.className = "skeleton-block skeleton-count";
-      heading.append(icon, title, categoryCount);
-
-      const list = document.createElement("div");
-      list.className = "service-list";
-      for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
-        const row = document.createElement("div");
-        row.className = "service-row skeleton-row";
-        const name = document.createElement("span");
-        name.className = "skeleton-block skeleton-name";
-        const prices = document.createElement("span");
-        prices.className = "skeleton-block skeleton-prices";
-        row.append(name, prices);
-        list.append(row);
-      }
-      card.append(heading, list);
-      fragment.append(card);
-    }
-
-    catalog.replaceChildren(fragment);
-  }
-
   function formatPrice(value) {
     return priceFormatter.format(Number(value));
   }
@@ -218,7 +180,6 @@
   }
 
   searchInput.addEventListener("input", scheduleRender);
-  renderLoadingSkeleton();
   loadCatalog().catch((error) => {
     setCatalogLoading(false);
     catalog.replaceChildren();

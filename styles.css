@@ -231,6 +231,7 @@ a { color: inherit; text-decoration: none; }
 .skeleton-title { width: 42%; height: 16px; }
 .skeleton-count { width: 55px; height: 10px; }
 .skeleton-row { pointer-events: none; }
+.skeleton-row:nth-child(n + 5) { display: none; }
 .skeleton-name { width: 42%; height: 12px; }
 .skeleton-prices { width: 110px; height: 25px; border-radius: 999px; }
 .category-card {
@@ -390,6 +391,7 @@ a { color: inherit; text-decoration: none; }
     height: 6850px;
     grid-template-rows: repeat(15, minmax(0, 1fr));
   }
+  .skeleton-row:nth-child(n + 5) { display: flex; }
   .catalog-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
   .catalog-count { text-align: left; }
   .site-footer { flex-direction: column; }
