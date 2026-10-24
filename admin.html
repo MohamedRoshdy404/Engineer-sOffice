@@ -44,7 +44,7 @@
         <div>
           <div class="section-kicker">إدارة المحتوى</div>
           <h1>لوحة الأسعار</h1>
-          <p>أضف الأقسام والخدمات، وحدّث الأسعار لتظهر مباشرة في صفحة العرض.</p>
+          <p>أدر الأقسام والخدمات والأسعار لتظهر مباشرة في صفحة العرض.</p>
         </div>
         <button id="logout-button" class="button button-quiet" type="button">تسجيل الخروج</button>
       </div>
@@ -52,13 +52,22 @@
       <div id="admin-message" class="notice" role="status"></div>
 
       <section class="admin-card">
-        <h2>إضافة قسم</h2>
+        <h2 id="category-form-title">إضافة قسم</h2>
         <form id="category-form" class="inline-form">
+          <input id="category-id" type="hidden">
           <label>اسم القسم
             <input id="category-name" maxlength="100" required placeholder="مثال: خدمات عامة">
           </label>
-          <button class="button button-primary" type="submit">إضافة القسم</button>
+          <div class="form-actions">
+            <button id="save-category-button" class="button button-primary" type="submit">إضافة القسم</button>
+            <button id="cancel-category-edit-button" class="button button-quiet" type="button" hidden>إلغاء التعديل</button>
+          </div>
         </form>
+        <div class="list-heading category-list-heading">
+          <h2>الأقسام الحالية</h2>
+          <span id="admin-category-count" class="count-badge"></span>
+        </div>
+        <div id="admin-categories" class="admin-category-list"></div>
       </section>
 
       <section class="admin-card">

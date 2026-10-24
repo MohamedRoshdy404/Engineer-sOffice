@@ -298,6 +298,8 @@ a { color: inherit; text-decoration: none; }
 .list-heading { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .list-heading h2 { margin-bottom: 0; }
 .count-badge { padding: 3px 10px; border-radius: 20px; color: #087b69; background: #e1f6ef; font-size: .77rem; font-weight: 700; }
+.category-list-heading { margin-top: 22px; }
+.admin-category-list { margin-top: 13px; }
 .admin-service-list { margin-top: 13px; }
 .admin-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 13px; border-top: 1px solid #edf0f2; }
 .admin-row-main { min-width: 0; }

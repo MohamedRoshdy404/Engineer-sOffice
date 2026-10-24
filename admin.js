@@ -5,7 +5,13 @@
   const loginMessage = document.getElementById("login-message");
   const adminMessage = document.getElementById("admin-message");
   const categoryForm = document.getElementById("category-form");
+  const categoryId = document.getElementById("category-id");
   const categoryName = document.getElementById("category-name");
+  const categoryFormTitle = document.getElementById("category-form-title");
+  const categoryList = document.getElementById("admin-categories");
+  const categoryCount = document.getElementById("admin-category-count");
+  const saveCategoryButton = document.getElementById("save-category-button");
+  const cancelCategoryEdit = document.getElementById("cancel-category-edit-button");
   const serviceForm = document.getElementById("service-form");
   const serviceId = document.getElementById("service-id");
   const serviceCategory = document.getElementById("service-category");
@@ -55,6 +61,50 @@
     if (categories.some((category) => category.id === selected)) serviceCategory.value = selected;
     serviceCategory.disabled = categories.length === 0;
     saveServiceButton.disabled = categories.length === 0;
+    renderCategoryList();
+  }
+
+  function renderCategoryList() {
+    categoryList.replaceChildren();
+    categoryCount.textContent = formatPrice(categories.length);
+    if (!categories.length) {
+      const empty = document.createElement("p");
+      empty.className = "admin-empty";
+      empty.textContent = "لا توجد أقسام بعد.";
+      categoryList.append(empty);
+      return;
+    }
+
+    categories.forEach((category) => {
+      const row = document.createElement("div");
+      row.className = "admin-row";
+      const main = document.createElement("div");
+      main.className = "admin-row-main";
+      const title = document.createElement("span");
+      title.className = "admin-row-title";
+      title.textContent = category.name;
+      const itemCount = services.filter((service) => service.category_id === category.id).length;
+      const meta = document.createElement("span");
+      meta.className = "admin-row-meta";
+      meta.textContent = `${formatPrice(itemCount)} خدمات`;
+      main.append(title, meta);
+
+      const actions = document.createElement("div");
+      actions.className = "admin-row-actions";
+      const edit = document.createElement("button");
+      edit.className = "button button-edit";
+      edit.type = "button";
+      edit.textContent = "تعديل";
+      edit.addEventListener("click", () => startCategoryEdit(category));
+      const remove = document.createElement("button");
+      remove.className = "button button-danger";
+      remove.type = "button";
+      remove.textContent = "حذف";
+      remove.addEventListener("click", () => deleteCategory(category));
+      actions.append(edit, remove);
+      row.append(main, actions);
+      categoryList.append(row);
+    });
   }
 
   function renderServices() {
@@ -118,6 +168,51 @@
     renderCategories();
     renderServices();
     setMessage(adminMessage, "");
+  }
+
+  function startCategoryEdit(category) {
+    categoryId.value = category.id;
+    categoryName.value = category.name;
+    categoryFormTitle.textContent = "تعديل القسم";
+    saveCategoryButton.textContent = "حفظ التعديلات";
+    cancelCategoryEdit.hidden = false;
+    categoryForm.scrollIntoView({ behavior: "smooth", block: "center" });
+    categoryName.focus();
+  }
+
+  function resetCategoryForm() {
+    categoryForm.reset();
+    categoryId.value = "";
+    categoryFormTitle.textContent = "إضافة قسم";
+    saveCategoryButton.textContent = "إضافة القسم";
+    cancelCategoryEdit.hidden = true;
+  }
+
+  async function deleteCategory(category) {
+    const itemCount = services.filter((service) => service.category_id === category.id).length;
+    const servicesWarning = itemCount
+      ? ` وسيتم حذف ${formatPrice(itemCount)} خدمات مرتبطة به أيضًا.`
+      : "";
+    if (!window.confirm(`هل تريد حذف قسم "${category.name}"؟${servicesWarning}`)) return;
+
+    setBusy(saveCategoryButton, true);
+    setMessage(adminMessage, "جاري حذف القسم...");
+    const { error } = await client.from("categories").delete().eq("id", category.id);
+    setBusy(saveCategoryButton, false);
+    if (error) {
+      setMessage(adminMessage, `تعذر حذف القسم: ${error.message}`, "error");
+      return;
+    }
+
+    if (categoryId.value === category.id) resetCategoryForm();
+    if (services.some((service) => service.category_id === category.id &&
+        serviceId.value === service.id)) resetServiceForm();
+    try {
+      await refreshData();
+      setMessage(adminMessage, "تم حذف القسم والخدمات المرتبطة به.", "success");
+    } catch (error) {
+      setMessage(adminMessage, `تم حذف القسم، لكن تعذر تحديث القائمة: ${error.message}`, "error");
+    }
   }
 
   function startEdit(service) {
@@ -214,21 +309,25 @@
 
   categoryForm.addEventListener("submit", async (event) => {
     event.preventDefault();
-    const button = categoryForm.querySelector("button");
-    setBusy(button, true);
+    setBusy(saveCategoryButton, true);
     setMessage(adminMessage, "");
-    const { error } = await client.from("categories").insert({ name: categoryName.value.trim() });
-    setBusy(button, false);
+    const request = categoryId.value
+      ? client.from("categories").update({ name: categoryName.value.trim() }).eq("id", categoryId.value)
+      : client.from("categories").insert({ name: categoryName.value.trim() });
+    const { error } = await request;
+    setBusy(saveCategoryButton, false);
     if (error) {
-      setMessage(adminMessage, `تعذرت إضافة القسم: ${error.message}`, "error");
+      setMessage(adminMessage, `تعذر حفظ القسم: ${error.message}`, "error");
       return;
     }
-    categoryForm.reset();
+    const wasEditing = Boolean(categoryId.value);
+    resetCategoryForm();
     try {
       await refreshData();
-      setMessage(adminMessage, "تمت إضافة القسم.", "success");
+      setMessage(adminMessage, wasEditing ? "تم تعديل القسم." : "تمت إضافة القسم.", "success");
     } catch (refreshError) {
-      setMessage(adminMessage, `تمت إضافة القسم، لكن تعذر تحديث القائمة: ${refreshError.message}`, "error");
+      const action = wasEditing ? "تعديل القسم" : "إضافة القسم";
+      setMessage(adminMessage, `تم ${action}، لكن تعذر تحديث القائمة: ${refreshError.message}`, "error");
     }
   });
 
@@ -264,6 +363,7 @@
     }
   });
 
+  cancelCategoryEdit.addEventListener("click", resetCategoryForm);
   cancelEdit.addEventListener("click", resetServiceForm);
   client.auth.getSession().then(({ data, error }) => {
     if (error) {
