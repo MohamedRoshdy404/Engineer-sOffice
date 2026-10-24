@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="قائمة أسعار الخدمات للشركاء والعملاء">
+  <title>أسعار الشركاء</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="site-header">
+    <nav class="topbar" aria-label="التنقل الرئيسي">
+      <a class="brand" href="index.html" aria-label="الرئيسية">
+        <span class="brand-mark" aria-hidden="true">ش</span>
+        <span>شريك <b>+</b></span>
+      </a>
+      <a class="admin-link" href="admin.html">إدارة الأسعار <span aria-hidden="true">↗</span></a>
+    </nav>
+    <div class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow"><span class="status-dot"></span> بوابة الشركاء</span>
+        <h1>أسعار واضحة.<br><span>شراكة أقوى.</span></h1>
+        <p>تصفّح الخدمات والأسعار المخصصة للشركاء في مكان واحد.</p>
+      </div>
+      <div class="hero-art" aria-hidden="true">
+        <span class="art-ring ring-one"></span>
+        <span class="art-ring ring-two"></span>
+        <span class="art-card"><span>قيمة الشراكة</span><strong>أسعار مميزة</strong><i>✦</i></span>
+      </div>
+    </div>
+  </header>
+
+  <main class="catalog-wrap">
+    <section class="catalog-toolbar" aria-label="البحث والتصفية">
+      <label class="search-box">
+        <span aria-hidden="true">⌕</span>
+        <input id="service-search" type="search" placeholder="ابحث عن خدمة..." autocomplete="off">
+        <kbd>بحث</kbd>
+      </label>
+      <p class="catalog-count" id="catalog-count" aria-live="polite"></p>
+    </section>
+    <div id="catalog-status" class="notice" role="status">جاري تحميل قائمة الخدمات...</div>
+    <div id="catalog" class="catalog-grid"></div>
+  </main>
+
+  <footer class="site-footer">
+    <span>شريك + <span id="current-year"></span></span>
+    <span>الأسعار قابلة للتحديث من لوحة الإدارة</span>
+  </footer>
+</body>
+</html>

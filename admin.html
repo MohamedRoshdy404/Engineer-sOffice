@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <title>إدارة الأسعار | شريك +</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
+  <script src="admin.js" defer></script>
+</head>
+<body class="admin-page">
+  <header class="admin-header">
+    <a class="brand brand-light" href="index.html">
+      <span class="brand-mark" aria-hidden="true">ش</span>
+      <span>شريك <b>+</b></span>
+    </a>
+    <a class="back-link" href="index.html">العودة إلى قائمة الأسعار ←</a>
+  </header>
+
+  <main class="admin-wrap">
+    <section id="login-panel" class="login-panel">
+      <div class="section-kicker">مساحة خاصة</div>
+      <h1>تسجيل دخول الأدمن</h1>
+      <p>استخدم حساب الأدمن المضاف في إعدادات Supabase.</p>
+      <form id="login-form" class="stack-form">
+        <label>البريد الإلكتروني
+          <input id="login-email" type="email" autocomplete="username" required>
+        </label>
+        <label>كلمة المرور
+          <input id="login-password" type="password" autocomplete="current-password" required>
+        </label>
+        <button class="button button-primary" type="submit">دخول لوحة الإدارة</button>
+      </form>
+      <p id="login-message" class="form-message" role="status"></p>
+    </section>
+
+    <section id="dashboard" class="dashboard" hidden>
+      <div class="dashboard-heading">
+        <div>
+          <div class="section-kicker">إدارة المحتوى</div>
+          <h1>لوحة الأسعار</h1>
+          <p>أضف الأقسام والخدمات، وحدّث الأسعار لتظهر مباشرة في صفحة العرض.</p>
+        </div>
+        <button id="logout-button" class="button button-quiet" type="button">تسجيل الخروج</button>
+      </div>
+
+      <div id="admin-message" class="notice" role="status"></div>
+
+      <section class="admin-card">
+        <h2>إضافة قسم</h2>
+        <form id="category-form" class="inline-form">
+          <label>اسم القسم
+            <input id="category-name" maxlength="100" required placeholder="مثال: خدمات عامة">
+          </label>
+          <button class="button button-primary" type="submit">إضافة القسم</button>
+        </form>
+      </section>
+
+      <section class="admin-card">
+        <h2 id="service-form-title">إضافة خدمة</h2>
+        <form id="service-form" class="service-form">
+          <input id="service-id" type="hidden">
+          <label>القسم
+            <select id="service-category" required></select>
+          </label>
+          <label>اسم الخدمة
+            <input id="service-name" maxlength="150" required>
+          </label>
+          <label>سعر الشريك (ريال)
+            <input id="partner-price" type="number" min="0" step="0.01" required>
+          </label>
+          <label>السعر الأساسي (ريال)
+            <input id="regular-price" type="number" min="0" step="0.01" required>
+          </label>
+          <div class="form-actions">
+            <button id="save-service-button" class="button button-primary" type="submit">حفظ الخدمة</button>
+            <button id="cancel-edit-button" class="button button-quiet" type="button" hidden>إلغاء التعديل</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-card">
+        <div class="list-heading">
+          <h2>الخدمات الحالية</h2>
+          <span id="admin-service-count" class="count-badge"></span>
+        </div>
+        <div id="admin-services" class="admin-service-list"></div>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
